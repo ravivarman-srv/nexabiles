@@ -1,0 +1,254 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import type { Message } from "@/types";
+import {
+  Clock,
+  Check,
+  CheckCheck,
+  XCircle,
+  FileText,
+  MapPin,
+  LayoutTemplate,
+  ImageOff,
+} from "lucide-react";
+import { format } from "date-fns";
+
+interface MessageBubbleProps {
+  message: Message;
+}
+
+function StatusIcon({ status }: { status: Message["status"] }) {
+  switch (status) {
+    case "sending":
+      return <Clock className="h-3 w-3 text-muted-foreground" />;
+    case "sent":
+      return <Check className="h-3 w-3 text-muted-foreground" />;
+    case "delivered":
+      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+    case "read":
+      return <CheckCheck className="h-3 w-3 text-blue-400" />;
+    case "failed":
+      return <XCircle className="h-3 w-3 text-red-400" />;
+    default:
+      return null;
+  }
+}
+
+function MediaUnavailable({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+      <ImageOff className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span>{label} unavailable</span>
+    </div>
+  );
+}
+
+function MediaImage({ url, alt }: { url: string; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadImage = useCallback(async () => {
+    if (!url) return;
+
+    // Proxy URLs need auth fetch to create blob URL
+    if (url.startsWith("/api/whatsapp/media/")) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to load media");
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setSrc(blobUrl);
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setSrc(url);
+      setLoading(false);
+    }
+  }, [url]);
+
+  useEffect(() => {
+    loadImage();
+    return () => {
+      if (src?.startsWith("blob:")) {
+        URL.revokeObjectURL(src);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadImage]);
+
+  if (error) {
+    return (
+      <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-muted">
+        <ImageOff className="h-8 w-8 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-muted">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src ?? ""}
+      alt={alt}
+      className="max-h-64 max-w-60 rounded-lg object-cover"
+      onError={() => setError(true)}
+    />
+  );
+}
+
+function MessageContent({ message, isAgent }: { message: Message; isAgent: boolean }) {
+  switch (message.content_type) {
+    case "text":
+      return (
+        <p className="whitespace-pre-wrap break-words text-sm">
+          {message.content_text}
+        </p>
+      );
+
+    case "image":
+      return (
+        <div>
+          {message.media_url ? (
+            <MediaImage url={message.media_url} alt="Shared image" />
+          ) : (
+            <MediaUnavailable label="Image" />
+          )}
+          {message.content_text && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+              {message.content_text}
+            </p>
+          )}
+        </div>
+      );
+
+    case "video":
+      return (
+        <div>
+          {message.media_url ? (
+            <video
+              src={message.media_url}
+              controls
+              className="max-h-64 max-w-60 rounded-lg"
+            />
+          ) : (
+            <MediaUnavailable label="Video" />
+          )}
+          {message.content_text && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+              {message.content_text}
+            </p>
+          )}
+        </div>
+      );
+
+    case "audio":
+      return (
+        <div>
+          {message.media_url ? (
+            <audio src={message.media_url} controls className="max-w-60" />
+          ) : (
+            <MediaUnavailable label="Audio" />
+          )}
+        </div>
+      );
+
+    case "document":
+      if (!message.media_url) {
+        return <MediaUnavailable label={message.content_text || "Document"} />;
+      }
+      return (
+        <a
+          href={message.media_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
+            isAgent ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-muted hover:bg-muted/80"
+          )}
+        >
+          <FileText className="h-5 w-5 shrink-0" />
+          <span className="truncate">
+            {message.content_text || "Document"}
+          </span>
+        </a>
+      );
+
+    case "template":
+      return (
+        <div>
+          <span
+            className={cn(
+              "mb-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+              isAgent
+                ? "bg-primary-foreground/20 text-primary-foreground"
+                : "bg-primary/20 text-primary"
+            )}
+          >
+            <LayoutTemplate className="h-3 w-3" />
+            Template
+          </span>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+            {message.content_text || (message.template_name ? `[Template: ${message.template_name}]` : "[Empty Template]")}
+          </p>
+        </div>
+      );
+
+    case "location":
+      return (
+        <div className="flex items-center gap-2 text-sm">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span>{message.content_text || "Location shared"}</span>
+        </div>
+      );
+
+    default:
+      return (
+        <p className="whitespace-pre-wrap break-words text-sm">
+          {message.content_text || "[Unsupported message type]"}
+        </p>
+      );
+  }
+}
+
+export function MessageBubble({ message }: MessageBubbleProps) {
+  const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
+  const time = format(new Date(message.created_at), "HH:mm");
+
+  return (
+    <div
+      className={cn("flex w-full", isAgent ? "justify-end" : "justify-start")}
+    >
+      <div
+        className={cn(
+          "relative max-w-[75%] rounded-2xl px-3 py-2",
+          isAgent
+            ? "rounded-br-md bg-primary text-primary-foreground"
+            : "rounded-bl-md bg-muted text-foreground"
+        )}
+      >
+        <MessageContent message={message} isAgent={isAgent} />
+        <div
+          className={cn(
+            "mt-1 flex items-center gap-1",
+            isAgent ? "justify-end" : "justify-start"
+          )}
+        >
+          <span className="text-[10px] text-foreground/60">{time}</span>
+          {isAgent && <StatusIcon status={message.status} />}
+        </div>
+      </div>
+    </div>
+  );
+}
