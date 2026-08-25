@@ -165,7 +165,11 @@ export async function POST(request: Request) {
       .eq('phone_number_id', phoneNumberId)
       .maybeSingle()
     if (config?.meta_app_secret) {
-      secret = decrypt(config.meta_app_secret)
+      try {
+        secret = decrypt(config.meta_app_secret)
+      } catch (err) {
+        console.error('[webhook] Failed to decrypt meta_app_secret for phone', phoneNumberId)
+      }
     }
   }
 
@@ -216,7 +220,13 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
         continue
       }
 
-      const decryptedAccessToken = decrypt(config.access_token)
+      let decryptedAccessToken: string
+      try {
+        decryptedAccessToken = decrypt(config.access_token)
+      } catch (err) {
+        console.error('[webhook] Failed to decrypt access_token for phone', phoneNumberId)
+        continue
+      }
 
       for (let i = 0; i < value.messages.length; i++) {
         const message = value.messages[i]
