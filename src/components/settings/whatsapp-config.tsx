@@ -52,7 +52,9 @@ export function WhatsAppConfig() {
   const [wabaId, setWabaId] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [verifyToken, setVerifyToken] = useState('');
+  const [metaAppSecret, setMetaAppSecret] = useState('');
   const [tokenEdited, setTokenEdited] = useState(false);
+  const [secretEdited, setSecretEdited] = useState(false);
 
   const webhookUrl =
     typeof window !== 'undefined'
@@ -79,14 +81,18 @@ export function WhatsAppConfig() {
         setWabaId(data.waba_id || '');
         setAccessToken(MASKED_TOKEN);
         setVerifyToken('');
+        setMetaAppSecret(data.meta_app_secret ? MASKED_TOKEN : '');
         setTokenEdited(false);
+        setSecretEdited(false);
       } else {
         setConfig(null);
         setPhoneNumberId('');
         setWabaId('');
         setAccessToken('');
         setVerifyToken('');
+        setMetaAppSecret('');
         setTokenEdited(false);
+        setSecretEdited(false);
       }
 
       // Then verify health via the API (decrypts token + pings Meta)
@@ -152,6 +158,10 @@ export function WhatsAppConfig() {
         waba_id: wabaId.trim() || null,
         verify_token: verifyToken.trim() || null,
       };
+
+      if (secretEdited && metaAppSecret !== MASKED_TOKEN && metaAppSecret.trim()) {
+        payload.meta_app_secret = metaAppSecret.trim();
+      }
 
       if (tokenEdited && accessToken !== MASKED_TOKEN && accessToken.trim()) {
         payload.access_token = accessToken.trim();
@@ -245,7 +255,9 @@ export function WhatsAppConfig() {
       setWabaId('');
       setAccessToken('');
       setVerifyToken('');
+      setMetaAppSecret('');
       setTokenEdited(false);
+      setSecretEdited(false);
       setConnectionStatus('disconnected');
       setResetReason(null);
       setStatusMessage('');
@@ -404,6 +416,38 @@ export function WhatsAppConfig() {
               />
               <p className="text-xs text-muted-foreground">
                 A custom string you create. Must match the token you set in Meta webhook settings.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Meta App Secret</Label>
+              <div className="relative">
+                <Input
+                  type={showToken ? 'text' : 'password'}
+                  placeholder="App Secret from Meta App Settings"
+                  value={metaAppSecret}
+                  onChange={(e) => {
+                    setMetaAppSecret(e.target.value);
+                    setSecretEdited(true);
+                  }}
+                  onFocus={() => {
+                    if (metaAppSecret === MASKED_TOKEN) {
+                      setMetaAppSecret('');
+                      setSecretEdited(true);
+                    }
+                  }}
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Found in Meta App Dashboard under App Settings &gt; Basic. Required to verify incoming webhooks.
               </p>
             </div>
           </CardContent>
