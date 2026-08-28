@@ -59,10 +59,24 @@ export default function NewBroadcastPage() {
       });
       router.push(`/broadcasts/${broadcastId}`);
     } catch (err) {
-      // Previously swallowed with console.error — the wizard would
-      // just no-op, leaving the user confused. Surface the reason.
       const message = err instanceof Error ? err.message : 'Broadcast failed';
       console.error('Broadcast failed:', err);
+      
+      // Log to server
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: 'error',
+          source: 'broadcast_wizard',
+          message: message,
+          context: {
+            error: err instanceof Error ? err.stack : String(err),
+            templateName: template?.name
+          }
+        })
+      }).catch(console.error);
+
       toast.error(message);
     }
   }
@@ -92,7 +106,7 @@ export default function NewBroadcastPage() {
     }
 
     const { error } = await supabase.from('broadcasts').insert({
-      user_id: user.id,
+      org_id: user.id,
       name: name.trim(),
       template_name: template.name,
       template_language: template.language ?? 'en_US',

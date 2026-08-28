@@ -252,7 +252,7 @@ export function ContactDetailView({
 
     const { error } = await supabase.from('contact_notes').insert({
       contact_id: contactId,
-      user_id: user.id,
+      org_id: user.id,
       note_text: newNote.trim(),
     });
 
@@ -386,7 +386,7 @@ export function ContactDetailView({
                     const { data: existing } = await supabase
                       .from('conversations')
                       .select('id')
-                      .eq('user_id', session.user.id)
+                      .eq('org_id', session.user.id)
                       .eq('contact_id', contact.id)
                       .single();
                       
@@ -397,7 +397,7 @@ export function ContactDetailView({
                       const { data: newConv, error } = await supabase
                         .from('conversations')
                         .insert({
-                          user_id: session.user.id,
+                          org_id: session.user.id,
                           contact_id: contact.id,
                           status: 'open'
                         })

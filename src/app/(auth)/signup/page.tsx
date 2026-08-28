@@ -14,12 +14,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageSquare, CheckCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [teamSize, setTeamSize] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -47,6 +50,9 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
+          org_name: orgName,
+          team_size: teamSize,
+          role: 'owner', // Default role for registering user
         },
       },
     });
@@ -94,7 +100,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="items-center text-center">
           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -141,6 +147,38 @@ export default function SignupPage() {
                 required
                 className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-violet-500/20"
               />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="orgName" className="text-muted-foreground">
+                Organization name
+              </Label>
+              <Input
+                id="orgName"
+                type="text"
+                placeholder="Acme Inc."
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                required
+                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-violet-500/20"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="teamSize" className="text-muted-foreground">
+                Team size
+              </Label>
+              <Select value={teamSize} onValueChange={(val) => setTeamSize(val || '')} required>
+                <SelectTrigger className="border-border bg-muted text-foreground focus:ring-violet-500/20">
+                  <SelectValue placeholder="Select team size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1-5">1-5 members</SelectItem>
+                  <SelectItem value="6-20">6-20 members</SelectItem>
+                  <SelectItem value="21-50">21-50 members</SelectItem>
+                  <SelectItem value="50+">50+ members</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-col gap-2">

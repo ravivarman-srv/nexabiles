@@ -132,7 +132,7 @@ export function TemplateManager() {
       const { data, error } = await supabase
         .from('message_templates')
         .select('*')
-        .eq('user_id', userId)
+        .eq('org_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -166,7 +166,7 @@ export function TemplateManager() {
       }
 
       const payload = {
-        user_id: user.id,
+        org_id: user.id,
         name: form.name.trim(),
         category: form.category,
         language: form.language.trim() || 'en_US',

@@ -19,7 +19,7 @@ import type {
 
 // ------------------------------------------------------------
 // All client-side aggregation. RLS scopes every query to the
-// signed-in user automatically, so we never pass user_id explicitly
+// signed-in user automatically, so we never pass org_id explicitly
 // here. Perf is acceptable for the current scale (low thousands of
 // messages) — if a tenant's dataset outgrows this, we'd migrate the
 // heavy aggregations to SQL RPCs. Noted in the PR.

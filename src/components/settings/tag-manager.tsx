@@ -61,7 +61,7 @@ export function TagManager() {
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .eq('user_id', userId)
+        .eq('org_id', userId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -90,7 +90,7 @@ export function TagManager() {
       const { error } = await supabase
         .from('tags')
         .insert({
-          user_id: user.id,
+          org_id: user.id,
           name: newTagName.trim(),
           color: selectedColor,
         });

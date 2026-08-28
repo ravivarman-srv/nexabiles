@@ -13,15 +13,20 @@ import type { User } from "@supabase/supabase-js";
 
 interface Profile {
   id: string;
+  user_id: string;
+  org_id: string | null;
   full_name: string | null;
   email: string;
   avatar_url: string | null;
   role: string | null;
+  org_name?: string;
+  team_size?: string;
 }
 
 interface AuthContextValue {
   user: User | null;
   profile: Profile | null;
+  org_id: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
   /** Re-fetch the current user's profile row — call after a save from
@@ -50,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, role")
+        .select("id, user_id, org_id, full_name, email, avatar_url, role")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -147,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signOut, refreshProfile }}
+      value={{ user, profile, org_id: profile?.org_id ?? null, loading, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
@@ -166,6 +171,7 @@ export function useAuth(): AuthContextValue {
     return {
       user: null,
       profile: null,
+      org_id: null,
       loading: false,
       signOut: async () => {
         window.location.href = "/login";

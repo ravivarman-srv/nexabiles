@@ -9,8 +9,9 @@ import { TagManager } from '@/components/settings/tag-manager';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
+import { TeamManager } from '@/components/settings/team-manager';
 
-const TAB_VALUES = ['profile', 'whatsapp', 'templates', 'tags'] as const;
+const TAB_VALUES = ['profile', 'whatsapp', 'templates', 'tags', 'team'] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
 function isTabValue(v: string | null): v is TabValue {
@@ -39,8 +40,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your profile, WhatsApp® integration, message templates, and
-          tags.
+          Manage your profile, WhatsApp® integration, message templates, tags, and team.
         </p>
       </div>
 
@@ -50,29 +50,36 @@ export default function SettingsPage() {
             value="profile"
             className="data-active:bg-muted data-active:text-primary text-muted-foreground"
           >
-            <User className="size-4" />
+            <User className="size-4 mr-2" />
             Profile
           </TabsTrigger>
           <TabsTrigger
             value="whatsapp"
             className="data-active:bg-muted data-active:text-primary text-muted-foreground"
           >
-            <Settings className="size-4" />
+            <Settings className="size-4 mr-2" />
             WhatsApp Config
           </TabsTrigger>
           <TabsTrigger
             value="templates"
             className="data-active:bg-muted data-active:text-primary text-muted-foreground"
           >
-            <MessageSquare className="size-4" />
+            <MessageSquare className="size-4 mr-2" />
             Templates
           </TabsTrigger>
           <TabsTrigger
             value="tags"
             className="data-active:bg-muted data-active:text-primary text-muted-foreground"
           >
-            <Tag className="size-4" />
+            <Tag className="size-4 mr-2" />
             Tags
+          </TabsTrigger>
+          <TabsTrigger
+            value="team"
+            className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+          >
+            <User className="size-4 mr-2" />
+            Team
           </TabsTrigger>
         </TabsList>
 
@@ -92,6 +99,10 @@ export default function SettingsPage() {
 
         <TabsContent value="tags">
           <TagManager />
+        </TabsContent>
+
+        <TabsContent value="team">
+          <TeamManager />
         </TabsContent>
       </Tabs>
     </div>

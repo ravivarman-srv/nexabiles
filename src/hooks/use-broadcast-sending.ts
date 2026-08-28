@@ -232,7 +232,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const { data: existing, error: lookupErr } = await supabase
       .from('contacts')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('org_id', user.id)
       .in('phone', phones);
     if (lookupErr) {
       throw new Error(`Failed to look up CSV contacts: ${lookupErr.message}`);
@@ -248,7 +248,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const missing = phones
       .filter((p) => !byPhone.has(p))
       .map((phone) => ({
-        user_id: user.id,
+        org_id: user.id,
         phone,
         name: uniqueByPhone.get(phone)?.name ?? null,
       }));
@@ -315,8 +315,8 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
     try {
       // ── Step 0: Resolve current user ──────────────────────────────
-      // broadcasts.user_id is NOT NULL + guarded by RLS
-      // (auth.uid() = user_id). Without this, the INSERT below was
+      // broadcasts.org_id is NOT NULL + guarded by RLS
+      // (auth.uid() = org_id). Without this, the INSERT below was
       // silently failing with 23502 / 42501 — the wizard would
       // no-op with no feedback.
       const {
@@ -340,7 +340,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       const { data: broadcast, error: broadcastError } = await supabase
         .from('broadcasts')
         .insert({
-          user_id: user.id,
+          org_id: user.id,
           name: payload.name,
           template_name: payload.template.name,
           template_language: payload.template.language ?? 'en_US',

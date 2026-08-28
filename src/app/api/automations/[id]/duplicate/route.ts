@@ -18,7 +18,7 @@ export async function POST(
     .from('automations')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('org_id', user.id)
     .maybeSingle()
   if (origErr) return NextResponse.json({ error: origErr.message }, { status: 500 })
   if (!original) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -26,7 +26,7 @@ export async function POST(
   const { data: copy, error: copyErr } = await admin
     .from('automations')
     .insert({
-      user_id: user.id,
+      org_id: user.id,
       name: `${original.name} (Copy)`,
       description: original.description,
       trigger_type: original.trigger_type,

@@ -219,3 +219,85 @@ export async function downloadMedia(
   const buffer = Buffer.from(await response.arrayBuffer())
   return { buffer, contentType }
 }
+
+export interface UploadMediaArgs {
+  phoneNumberId: string
+  accessToken: string
+  file: Blob | Buffer
+  mimeType: string
+  filename?: string
+}
+
+/**
+ * Upload a media file to Meta and return its media ID.
+ */
+export async function uploadMedia(args: UploadMediaArgs): Promise<string> {
+  const { phoneNumberId, accessToken, file, mimeType, filename = 'file' } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/media`
+
+  const formData = new FormData()
+  formData.append('messaging_product', 'whatsapp')
+  formData.append('file', new Blob([file as any], { type: mimeType }), filename)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    await throwMetaError(response, `Media upload failed: ${response.status}`)
+  }
+  const data = await response.json()
+  return data.id
+}
+
+export interface SendMediaMessageArgs {
+  phoneNumberId: string
+  accessToken: string
+  to: string
+  mediaId: string
+  type: 'image' | 'document'
+  caption?: string
+  filename?: string
+}
+
+/**
+ * Send a media message using a media ID.
+ */
+export async function sendMediaMessage(
+  args: SendMediaMessageArgs
+): Promise<MetaSendResult> {
+  const { phoneNumberId, accessToken, to, mediaId, type, caption, filename } = args
+  const url = `${META_API_BASE}/${phoneNumberId}/messages`
+
+  const payload: any = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to,
+    type,
+  }
+
+  if (type === 'image') {
+    payload.image = { id: mediaId, caption }
+  } else if (type === 'document') {
+    payload.document = { id: mediaId, caption, filename }
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    await throwMetaError(response, `Meta API error: ${response.status}`)
+  }
+  const data = await response.json()
+  return { messageId: data.messages[0].id }
+}

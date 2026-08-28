@@ -29,10 +29,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .single()
+      
+    const orgId = profile?.org_id || user.id
+
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
       .select('phone_number_id, access_token, status')
-      .eq('user_id', user.id)
+      .eq('org_id', orgId)
       .maybeSingle()
 
     if (configError) {
@@ -120,6 +128,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .single()
+    
+    const orgId = profile?.org_id || user.id
+
     const body = await request.json()
     const { phone_number_id, waba_id, access_token, verify_token, meta_app_secret } = body
 
@@ -167,11 +183,15 @@ export async function POST(request: Request) {
     }
 
     // Upsert — overwrite any existing (possibly corrupted) config
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('whatsapp_config')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('org_id', orgId)
       .maybeSingle()
+      
+    if (checkError) {
+       console.error('Error checking existing config:', checkError)
+    }
 
     if (existing) {
       const { error: updateError } = await supabase
@@ -186,12 +206,12 @@ export async function POST(request: Request) {
           connected_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('org_id', orgId)
 
       if (updateError) {
         console.error('Error updating whatsapp_config:', updateError)
         return NextResponse.json(
-          { error: 'Failed to update configuration' },
+          { error: 'Failed to update configuration: ' + updateError.message },
           { status: 500 }
         )
       }
@@ -199,7 +219,7 @@ export async function POST(request: Request) {
       const { error: insertError } = await supabase
         .from('whatsapp_config')
         .insert({
-          user_id: user.id,
+          org_id: orgId,
           phone_number_id,
           waba_id: waba_id || null,
           access_token: encryptedAccessToken,
@@ -212,7 +232,7 @@ export async function POST(request: Request) {
       if (insertError) {
         console.error('Error inserting whatsapp_config:', insertError)
         return NextResponse.json(
-          { error: 'Failed to save configuration' },
+          { error: 'Failed to save configuration: ' + insertError.message },
           { status: 500 }
         )
       }
@@ -245,10 +265,18 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .single()
+      
+    const orgId = profile?.org_id || user.id
+
     const { error: deleteError } = await supabase
       .from('whatsapp_config')
       .delete()
-      .eq('user_id', user.id)
+      .eq('org_id', orgId)
 
     if (deleteError) {
       console.error('Error deleting whatsapp_config:', deleteError)

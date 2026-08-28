@@ -110,7 +110,7 @@ export function ContactForm({
         const { data, error } = await supabase
           .from('contacts')
           .insert({
-            user_id: user.id,
+            org_id: user.id,
             name: name.trim() || null,
             phone: phone.trim(),
             email: email.trim() || null,

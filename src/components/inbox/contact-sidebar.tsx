@@ -14,6 +14,7 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,9 +22,10 @@ import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  onClose?: () => void;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+export function ContactSidebar({ contact, onClose }: ContactSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -98,7 +100,7 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
       .from("contact_notes")
       .insert({
         contact_id: contact.id,
-        user_id: user?.id,
+        org_id: user?.id,
         note_text: newNote.trim(),
       })
       .select()
@@ -124,6 +126,22 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
   return (
     <div className="flex h-full w-70 flex-col border-l border-border bg-card">
+      {/* Header with Close Button */}
+      {onClose && (
+        <div className="flex h-14 items-center justify-between border-b border-border px-4 shrink-0">
+          <span className="text-sm font-semibold text-foreground">Contact Details</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="Close details"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       <ScrollArea className="flex-1">
         <div className="p-4">
           {/* Contact Info */}

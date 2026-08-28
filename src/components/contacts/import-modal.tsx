@@ -136,7 +136,7 @@ export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps
       for (let i = 0; i < parsedRows.length; i += chunkSize) {
         const chunk = parsedRows.slice(i, i + chunkSize);
         const rows = chunk.map((row) => ({
-          user_id: user.id,
+          org_id: user.id,
           phone: row.phone,
           name: row.name || null,
           email: row.email || null,

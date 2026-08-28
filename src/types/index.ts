@@ -1,16 +1,19 @@
 export interface Profile {
   id: string;
   user_id: string;
+  org_id: string;
   full_name: string;
   email: string;
   avatar_url?: string;
   role: string;
+  org_name?: string;
+  team_size?: string;
   created_at: string;
 }
 
 export interface Contact {
   id: string;
-  user_id: string;
+  org_id: string;
   phone: string;
   name?: string;
   email?: string;
@@ -22,7 +25,7 @@ export interface Contact {
 
 export interface Tag {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   color: string;
   created_at: string;
@@ -36,7 +39,7 @@ export interface ContactTag {
 
 export interface CustomField {
   id: string;
-  user_id: string;
+  org_id: string;
   field_name: string;
   field_type: string;
   field_options?: Record<string, unknown>;
@@ -53,7 +56,7 @@ export interface ContactCustomValue {
 export interface ContactNote {
   id: string;
   contact_id: string;
-  user_id: string;
+  org_id: string;
   note_text: string;
   created_at: string;
 }
@@ -62,7 +65,7 @@ export type ConversationStatus = 'open' | 'pending' | 'closed';
 
 export interface Conversation {
   id: string;
-  user_id: string;
+  org_id: string;
   contact_id: string;
   status: ConversationStatus;
   assigned_agent_id?: string;
@@ -89,12 +92,13 @@ export interface Message {
   template_name?: string;
   message_id?: string;
   status: MessageStatus;
+  reply_to_text?: string;   // quoted message text when replying
   created_at: string;
 }
 
 export interface WhatsAppConfig {
   id: string;
-  user_id: string;
+  org_id: string;
   phone_number_id: string;
   waba_id?: string;
   access_token: string;
@@ -106,7 +110,7 @@ export interface WhatsAppConfig {
 
 export interface MessageTemplate {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   category: 'Marketing' | 'Utility' | 'Authentication';
   language?: string;
@@ -121,7 +125,7 @@ export interface MessageTemplate {
 
 export interface Pipeline {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   created_at: string;
 }
@@ -139,7 +143,7 @@ export type DealStatus = 'open' | 'won' | 'lost';
 
 export interface Deal {
   id: string;
-  user_id: string;
+  org_id: string;
   pipeline_id: string;
   stage_id: string;
   /**
@@ -167,7 +171,7 @@ export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'repli
 
 export interface Broadcast {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   template_name: string;
   template_language: string;
@@ -331,7 +335,7 @@ export type AutomationStepConfig =
 
 export interface Automation {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   description?: string;
   trigger_type: AutomationTriggerType;
@@ -364,7 +368,7 @@ export interface AutomationLogStepResult {
 export interface AutomationLog {
   id: string;
   automation_id: string;
-  user_id: string;
+  org_id: string;
   contact_id: string | null;
   trigger_event: string;
   steps_executed: AutomationLogStepResult[];

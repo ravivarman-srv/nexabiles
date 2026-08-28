@@ -1,16 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
-import { useRealtime } from "@/hooks/use-realtime";
-import { ConversationList } from "@/components/inbox/conversation-list";
-import { MessageThread } from "@/components/inbox/message-thread";
-import { ContactSidebar } from "@/components/inbox/contact-sidebar";
-import { toast } from "sonner";
-import { WifiOff } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import type {
+  Conversation,
+  Message,
+  Contact,
+  ConversationStatus,
+} from '@/types';
+import { useRealtime } from '@/hooks/use-realtime';
+import { ConversationList } from '@/components/inbox/conversation-list';
+import { MessageThread } from '@/components/inbox/message-thread';
+import { ContactSidebar } from '@/components/inbox/contact-sidebar';
+import { toast } from 'sonner';
+import { WifiOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -20,7 +25,7 @@ export default function InboxPage() {
    * dashboard's recent-conversations list so the right thread opens
    * automatically instead of showing the empty center panel.
    */
-  const deepLinkConvId = searchParams.get("c");
+  const deepLinkConvId = searchParams.get('c');
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
@@ -30,6 +35,7 @@ export default function InboxPage() {
   const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(
     null
   );
+  const [showContactSidebar, setShowContactSidebar] = useState(true);
 
   // Fire the deep-link auto-select exactly once per URL — subsequent
   // list refreshes (realtime, manual refetch) must not snap the user
@@ -51,12 +57,12 @@ export default function InboxPage() {
       // Table is `whatsapp_config` (singular) — the previous "whatsapp_configs"
       // query always returned no rows, so the banner always showed "not connected".
       const { data } = await supabase
-        .from("whatsapp_config")
-        .select("status")
-        .eq("user_id", user.id)
+        .from('whatsapp_config')
+        .select('status')
+        .eq('org_id', user.id)
         .maybeSingle();
 
-      setWhatsappConnected(data?.status === "connected");
+      setWhatsappConnected(data?.status === 'connected');
     };
 
     checkConnection();
@@ -67,7 +73,7 @@ export default function InboxPage() {
     (event: { eventType: string; new: Message; old: Partial<Message> }) => {
       const newMsg = event.new;
 
-      if (event.eventType === "INSERT") {
+      if (event.eventType === 'INSERT') {
         // Add to messages if it belongs to active conversation
         if (
           activeConversation &&
@@ -78,7 +84,7 @@ export default function InboxPage() {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             // Replace optimistic message if it exists
             const withoutOptimistic = prev.filter(
-              (m) => !m.id.startsWith("temp-")
+              (m) => !m.id.startsWith('temp-')
             );
             return [...withoutOptimistic, newMsg];
           });
@@ -90,7 +96,7 @@ export default function InboxPage() {
             c.id === newMsg.conversation_id
               ? {
                   ...c,
-                  last_message_text: newMsg.content_text ?? "",
+                  last_message_text: newMsg.content_text ?? '',
                   last_message_at: newMsg.created_at,
                   unread_count:
                     activeConversation?.id === newMsg.conversation_id
@@ -102,7 +108,7 @@ export default function InboxPage() {
         );
       }
 
-      if (event.eventType === "UPDATE") {
+      if (event.eventType === 'UPDATE') {
         // Update message status
         setMessages((prev) =>
           prev.map((m) => (m.id === newMsg.id ? { ...m, ...newMsg } : m))
@@ -121,20 +127,18 @@ export default function InboxPage() {
     }) => {
       const conv = event.new;
 
-      if (event.eventType === "INSERT") {
+      if (event.eventType === 'INSERT') {
         setConversations((prev) => [conv, ...prev]);
       }
 
-      if (event.eventType === "UPDATE") {
+      if (event.eventType === 'UPDATE') {
         setConversations((prev) =>
           prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c))
         );
 
         // Update active conversation if it changed
         if (activeConversation && conv.id === activeConversation.id) {
-          setActiveConversation((prev) =>
-            prev ? { ...prev, ...conv } : prev
-          );
+          setActiveConversation((prev) => (prev ? { ...prev, ...conv } : prev));
         }
       }
     },
@@ -143,7 +147,7 @@ export default function InboxPage() {
 
   // Subscribe to realtime
   useRealtime({
-    channelName: "inbox-realtime",
+    channelName: 'inbox-realtime',
     onMessageEvent: handleMessageEvent,
     onConversationEvent: handleConversationEvent,
     enabled: true,
@@ -220,9 +224,8 @@ export default function InboxPage() {
     // Clearing the ref lets the deep-link auto-selector fire again if
     // the user later visits /inbox?c=<same-id> — desirable UX.
     autoSelectedForDeepLinkRef.current = null;
-    router.replace("/inbox", { scroll: false });
+    router.replace('/inbox', { scroll: false });
   }, [router]);
-
 
   const handleMessagesLoaded = useCallback((loaded: Message[]) => {
     setMessages(loaded);
@@ -243,6 +246,10 @@ export default function InboxPage() {
     },
     []
   );
+
+  const handleDeleteMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   const handleStatusChange = useCallback(
     (conversationId: string, status: ConversationStatus) => {
@@ -282,8 +289,8 @@ export default function InboxPage() {
             thread can occupy the full width. Always visible on lg+. */}
         <div
           className={cn(
-            "flex h-full flex-1 lg:flex-none",
-            hasActiveConv ? "hidden lg:flex" : "flex",
+            'flex h-full flex-1 lg:flex-none',
+            hasActiveConv ? 'hidden lg:flex' : 'flex'
           )}
         >
           <ConversationList
@@ -300,8 +307,8 @@ export default function InboxPage() {
             (shows its own empty-state if no thread is picked yet). */}
         <div
           className={cn(
-            "flex h-full flex-1 lg:flex",
-            hasActiveConv ? "flex" : "hidden lg:flex",
+            'flex h-full flex-1 lg:flex',
+            hasActiveConv ? 'flex' : 'hidden lg:flex'
           )}
         >
           <MessageThread
@@ -311,15 +318,22 @@ export default function InboxPage() {
             onMessagesLoaded={handleMessagesLoaded}
             onNewMessage={handleNewMessage}
             onUpdateMessage={handleUpdateMessage}
+            onDeleteMessage={handleDeleteMessage}
             onStatusChange={handleStatusChange}
             onBack={handleCloseConversation}
+            showContactSidebar={showContactSidebar}
+            onToggleContactSidebar={() =>
+              setShowContactSidebar((prev) => !prev)
+            }
           />
         </div>
 
         {/* Right panel: Contact sidebar — desktop only. */}
-        <div className="hidden lg:block">
-          <ContactSidebar contact={activeContact} />
-        </div>
+        {showContactSidebar && (
+          <div className="hidden lg:block">
+            <ContactSidebar contact={activeContact} onClose={() => setShowContactSidebar(false)} />
+          </div>
+        )}
       </div>
     </div>
   );

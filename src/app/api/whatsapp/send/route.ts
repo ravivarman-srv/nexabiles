@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import {
@@ -17,6 +18,12 @@ import {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
+
+    // Admin client bypasses RLS — used only for internal profile/config lookups
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     const {
       data: { user },
@@ -45,6 +52,7 @@ export async function POST(request: Request) {
       media_url,
       template_name,
       template_params,
+      reply_to_text,
     } = body
 
     if (!conversation_id || !message_type) {
@@ -68,17 +76,32 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fetch conversation and contact
+    // Fetch the user's profile to get their org_id — use admin client to bypass RLS
+    const { data: profile, error: profileError } = await adminSupabase
+      .from('profiles')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('[whatsapp/send] Profile lookup error:', profileError.message, '— falling back to user.id as org_id')
+    }
+
+    // Fall back to user.id for owner accounts (org_id = user_id for owners)
+    const orgId = profile?.org_id ?? user.id
+
+    // Fetch conversation and contact (RLS on the user client enforces org membership)
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select('*, contact:contacts(*)')
       .eq('id', conversation_id)
-      .eq('user_id', user.id)
+      .eq('org_id', orgId)
       .single()
 
     if (convError || !conversation) {
+      console.error('[whatsapp/send] Conversation not found:', convError?.message, '{ conversation_id, orgId }', conversation_id, orgId)
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: `Conversation not found (org_id: ${orgId})` },
         { status: 404 }
       )
     }
@@ -100,14 +123,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fetch and decrypt WhatsApp config
-    const { data: config, error: configError } = await supabase
+    // Fetch and decrypt WhatsApp config — use admin client to bypass RLS
+    const { data: config, error: configError } = await adminSupabase
       .from('whatsapp_config')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('org_id', orgId)
       .single()
 
     if (configError || !config) {
+      console.error('[whatsapp/send] WhatsApp config not found:', configError?.message, 'orgId:', orgId)
       return NextResponse.json(
         { error: 'WhatsApp not configured. Please set up your WhatsApp integration first.' },
         { status: 400 }
@@ -224,6 +248,7 @@ export async function POST(request: Request) {
         media_url: media_url || null,
         template_name: template_name || null,
         message_id: waMessageId,
+        reply_to_text: reply_to_text || null,
         status: 'sent',
       })
       .select()

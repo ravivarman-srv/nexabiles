@@ -23,8 +23,15 @@ export function useTotalUnread(): number {
     const supabase = createClient();
     let cancelled = false;
 
+    // Ask for browser notification permissions if not already granted/denied
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+
     // Initial load. RLS scopes this to the signed-in user automatically —
-    // no explicit user_id filter needed here.
+    // no explicit org_id filter needed here.
     (async () => {
       const { data, error } = await supabase
         .from("conversations")
@@ -54,7 +61,21 @@ export function useTotalUnread(): number {
             if (oldRow.id) map.delete(oldRow.id);
           } else {
             const row = payload.new as Conversation;
-            map.set(row.id, row.unread_count ?? 0);
+            const oldUnread = map.get(row.id) ?? 0;
+            const newUnread = row.unread_count ?? 0;
+            
+            // If unread count increased, this is a new inbound message
+            if (newUnread > oldUnread && row.last_message_text) {
+              // Only notify if we have permission and document is hidden (user is tabbed away) or we always want to notify
+              if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+                new Notification('New WhatsApp Message', {
+                  body: row.last_message_text,
+                  icon: '/icon.png', // Fallback, doesn't crash if missing
+                });
+              }
+            }
+            
+            map.set(row.id, newUnread);
           }
           // Recompute — cheap, conversations per user stay small.
           let sum = 0;

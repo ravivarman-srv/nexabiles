@@ -238,7 +238,7 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
         await processMessage(
           message,
           contact,
-          config.user_id,
+          config.org_id,
           decryptedAccessToken
         )
       }
@@ -355,9 +355,9 @@ async function flagBroadcastReplyIfAny(userId: string, contactId: string) {
     // Most recent outbound broadcast that hasn't been replied to yet.
     const { data: recs, error } = await supabaseAdmin()
       .from('broadcast_recipients')
-      .select('id, status, broadcast_id, broadcasts!inner(user_id)')
+      .select('id, status, broadcast_id, broadcasts!inner(org_id)')
       .eq('contact_id', contactId)
-      .eq('broadcasts.user_id', userId)
+      .eq('broadcasts.org_id', userId)
       .in('status', ['sent', 'delivered', 'read'])
       .order('created_at', { ascending: false })
       .limit(1)
@@ -649,7 +649,7 @@ async function findOrCreateContact(
   const { data: contacts, error: contactsError } = await supabaseAdmin()
     .from('contacts')
     .select('*')
-    .eq('user_id', userId)
+    .eq('org_id', userId)
 
   if (contactsError) {
     console.error('Error fetching contacts:', contactsError)
@@ -674,7 +674,7 @@ async function findOrCreateContact(
   const { data: newContact, error: createError } = await supabaseAdmin()
     .from('contacts')
     .insert({
-      user_id: userId,
+      org_id: userId,
       phone,
       name: name || phone,
     })
@@ -694,7 +694,7 @@ async function findOrCreateConversation(userId: string, contactId: string) {
   const { data: existing, error: findError } = await supabaseAdmin()
     .from('conversations')
     .select('*')
-    .eq('user_id', userId)
+    .eq('org_id', userId)
     .eq('contact_id', contactId)
     .single()
 
@@ -706,7 +706,7 @@ async function findOrCreateConversation(userId: string, contactId: string) {
   const { data: newConv, error: createError } = await supabaseAdmin()
     .from('conversations')
     .insert({
-      user_id: userId,
+      org_id: userId,
       contact_id: contactId,
     })
     .select()
